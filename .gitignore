@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Data (keep large/raw market data out of git)
+data/
+*.csv
+*.parquet
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
