@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
 """
-Phase 5 — LOB visualiser.
+Phase 5 — LOB visualiser (interactive, plotly).
 
 Usage:
-    python visualise.py --mode interactive
-    python visualise.py --mode static          (build on feat/viz-static branch)
+    python visualise.py
+    python visualise.py --stock AAPL --sample-every 10000 --max-messages 5000000
 
-Optional flags:
-    --stock         AAPL
-    --file          data/12302019.NASDAQ_ITCH50.gz
-    --sample-every  10000     snapshot every N messages (~500 points over 5M)
-    --max-messages  5000000
-    --output        lob_dashboard.html
+Writes lob_dashboard.html and opens it in the browser.
 """
 
 import argparse
@@ -252,8 +247,6 @@ def plot_interactive(depth, xs, mids, micro_xs, micros,
 
 def main():
     ap = argparse.ArgumentParser(description='LOB Simulator — Phase 5 Visualisation')
-    ap.add_argument('--mode',         choices=['interactive', 'static'],
-                    default='interactive')
     ap.add_argument('--stock',        default='AAPL')
     ap.add_argument('--file',         default='data/12302019.NASDAQ_ITCH50.gz')
     ap.add_argument('--sample-every', type=int, default=10_000, dest='sample_every')
@@ -276,14 +269,11 @@ def main():
     print("Running strategy simulation...")
     pnl_curves = build_pnl_curves(run_simulation())
 
-    if args.mode == 'interactive':
-        plot_interactive(
-            depth, xs, mids, micro_xs, micros,
-            imbalances, price_changes, pnl_curves,
-            args.stock, args.output,
-        )
-    else:
-        print("Static (matplotlib) mode lives on the feat/viz-static branch.")
+    plot_interactive(
+        depth, xs, mids, micro_xs, micros,
+        imbalances, price_changes, pnl_curves,
+        args.stock, args.output,
+    )
 
 
 if __name__ == '__main__':
