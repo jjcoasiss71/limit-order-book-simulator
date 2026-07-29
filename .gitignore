@@ -19,6 +19,18 @@ data/
 *.csv
 *.parquet
 
+# Compiled artifacts
+*.class
+*.o
+*.out
+cpp/test
+cpp/benchmark
+cpp/mapbench
+
+# Generated visualisations
+lob_dashboard.html
+lob_dashboard.png
+
 # OS / editor
 .DS_Store
 .idea/

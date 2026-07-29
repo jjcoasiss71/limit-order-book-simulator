@@ -6,12 +6,33 @@ A price-time priority matching engine built from scratch in Python, then ported 
 
 ## Benchmark
 
-Same matching logic, three languages — measured at 1M operations each after JVM/cache warmup:
+**Identical logic and data structures in all three languages** — measured at 1M operations each after JVM/cache warmup:
 
-| Operation | Python | Java | C++ | Speedup (vs Python) |
-|---|---|---|---|---|
-| `submit` (add + match) | 1,048 ns — 0.95M ops/s | 90 ns — 11.1M ops/s | 99 ns — 10.1M ops/s | **~11×** |
-| `cancel` (O(1) lookup) | 142 ns — 7.1M ops/s | 14 ns — 72.4M ops/s | 30 ns — 33.1M ops/s | **~10×** |
+| Operation | Python | Java | C++ | Java vs Python | C++ vs Python |
+|---|---|---|---|---|---|
+| `submit` (add + match) | 1,048 ns — 0.95M ops/s | 90 ns — 11.1M ops/s | 100 ns — 10.0M ops/s | **~12×** | **~11×** |
+| `cancel` (hash lookup) | 142 ns — 7.1M ops/s | 14 ns — 72.4M ops/s | 28 ns — 36.0M ops/s | **~10×** | **~5×** |
+
+Note that **Java beats C++ on the cancel path**. That is not a language limit — it is a standard-library data-structure choice. Java's `HashMap` stores entries in a flat array (open addressing), while C++'s `std::unordered_map` is required by the standard to use chained buckets — a separate heap-allocated node per entry, so every lookup chases a pointer into a random cache line. Swapping that one component closes the gap entirely — see the case study below.
+
+---
+
+## Optimization case study: the cancel bottleneck
+
+To confirm the map is the culprit, [`cpp/MapBenchmark.cpp`](cpp/MapBenchmark.cpp) isolates it — same keys, same operations, only the map type differs. Replacing `std::unordered_map` with a flat open-addressing map ([`cpp/OrderMap.hpp`](cpp/OrderMap.hpp), the same idea as Java's `HashMap`), measured on 1M sequential keys:
+
+| Map | insert | find + erase |
+|---|---|---|
+| `std::unordered_map` | 40 M ops/s | 57 M ops/s |
+| flat `OrderMap` | 1,355 M ops/s | 1,532 M ops/s |
+| **speed-up** | **~34×** | **~27×** |
+
+Two deliberate caveats, because the isolated number is easy to over-read:
+
+- **End-to-end, the engine's cancel throughput improves ~3×, not 27×.** The map is only one component of a cancel — the price-level `std::deque` removal and deallocation remain (Amdahl's law). Removing an order from a level is still an O(k) linear scan in all three languages; the textbook fix is an **intrusive doubly-linked list** (each order stores its own node pointer) for true O(1) removal.
+- **This is a memory-layout win, not a language win.** The same technique speeds up Java identically via a primitive-keyed map (e.g. Agrona's `Long2ObjectHashMap`). The real lesson of this whole benchmark: at this level, **allocation strategy and cache layout dominate — not the language.**
+
+Run it: `cd cpp && make mapbench && ./mapbench`
 
 ---
 
@@ -46,7 +67,9 @@ Same matching logic, three languages — measured at 1M operations each after JV
 │   ├── Order.hpp
 │   ├── OrderBook.hpp
 │   ├── OrderBook.cpp
+│   ├── OrderMap.hpp       # flat open-addressing map (cancel case study)
 │   ├── Benchmark.cpp      # C++ throughput benchmark
+│   ├── MapBenchmark.cpp   # std::unordered_map vs flat OrderMap, isolated
 │   ├── Test.cpp           # 25 correctness tests
 │   └── Makefile
 └── data/                  # ITCH data file goes here (gitignored, ~3.3 GB)
@@ -85,6 +108,7 @@ cd cpp
 make
 ./test           # 25 correctness tests
 ./benchmark      # throughput benchmark
+./mapbench       # cancel-bottleneck case study (std::unordered_map vs flat map)
 ```
 
 ---
@@ -93,7 +117,7 @@ make
 
 **Prices as integer ticks** — `$50.01` is stored as `5001`. Avoids floating-point comparison bugs in the matching path (e.g. `50.01 != 50.009999...`).
 
-**Two-structure book** — each side is a `SortedDict / TreeMap / std::map` (price → FIFO queue) for O(log n) best price, plus a flat hash map (order ID → order) for O(1) cancel. A heap alone can't support O(1) cancel.
+**Two-structure book** — each side is a `SortedDict / TreeMap / std::map` (price → FIFO queue) for O(log n) best price, plus a hash map (order ID → order) for O(1) cancel *lookup*. A heap alone can't support fast cancel. (Removing the located order from its price-level queue is still an O(k) scan; a production engine would use an intrusive doubly-linked list per level for true O(1) — see the cancel case study above.)
 
 **FIFO within price levels** — a `deque / ArrayDeque / std::deque` per price level gives time priority at no extra cost: new orders go to the back, fills come off the front.
 
@@ -119,6 +143,6 @@ Verification across 5M messages (AAPL): prices in realistic range, 0 crossed-boo
 |---|---|---|---|
 | Sorted map | `sortedcontainers.SortedDict` | `TreeMap` | `std::map` |
 | FIFO queue | `collections.deque` | `ArrayDeque` | `std::deque` |
-| Hash map | `dict` | `HashMap` | `std::unordered_map` |
+| Hash map | `dict` | `HashMap` | `std::unordered_map` (+ flat `OrderMap` case study) |
 | Visualisation | plotly | — | — |
 | Timing | `time.perf_counter_ns()` | `System.nanoTime()` | `std::chrono` |
