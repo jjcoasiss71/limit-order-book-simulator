@@ -49,21 +49,22 @@ Run it: `cd cpp && make mapbench && ./mapbench`
 ## Project structure
 
 ```
-├── order.py               # Order dataclass + Side enum
-├── order_book.py          # Matching engine: add, submit, cancel, match
-├── metrics.py             # FillResult dataclass + strategy comparison
-├── simulation.py          # Synthetic market, passive/aggressive strategy tests
-├── itch_parser.py         # NASDAQ ITCH 5.0 binary parser
-├── generate_test_itch.py  # Synthetic ITCH file for parser verification
-├── visualise.py           # Interactive plotly dashboard (4 charts)
-├── benchmark.py           # Python throughput benchmark
-├── java/
+├── python/                # reference implementation (full system)
+│   ├── order.py               # Order dataclass + Side enum
+│   ├── order_book.py          # Matching engine: add, submit, cancel, match
+│   ├── metrics.py             # FillResult dataclass + strategy comparison
+│   ├── simulation.py          # Synthetic market, passive/aggressive strategy tests
+│   ├── itch_parser.py         # NASDAQ ITCH 5.0 binary parser
+│   ├── generate_test_itch.py  # Synthetic ITCH file for parser verification
+│   ├── visualise.py           # Interactive plotly dashboard (4 charts)
+│   └── benchmark.py           # Python throughput benchmark
+├── java/                  # engine port + benchmark
 │   ├── Order.java
 │   ├── Side.java
 │   ├── OrderBook.java
 │   ├── Benchmark.java     # Java throughput benchmark
 │   └── Test.java          # 25 correctness tests
-├── cpp/
+├── cpp/                   # engine port + benchmark + map case study
 │   ├── Order.hpp
 │   ├── OrderBook.hpp
 │   ├── OrderBook.cpp
@@ -79,18 +80,20 @@ Run it: `cd cpp && make mapbench && ./mapbench`
 
 ## How to run
 
-### Python
+### Python (reference implementation)
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
-python order_book.py          # matching engine self-tests
-python simulation.py          # passive vs aggressive strategy comparison
-python itch_parser.py         # replay NASDAQ data (requires data file)
-python visualise.py           # interactive dashboard → lob_dashboard.html
-python benchmark.py           # throughput benchmark
+python python/order_book.py   # matching engine self-tests
+python python/simulation.py   # passive vs aggressive strategy comparison
+python python/itch_parser.py  # replay NASDAQ data (requires data file)
+python python/visualise.py    # interactive dashboard → lob_dashboard.html
+python python/benchmark.py    # throughput benchmark
 ```
+
+Data paths are anchored to the repo root, so these run from anywhere.
 
 ### Java
 

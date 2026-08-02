@@ -17,6 +17,9 @@ Expected final book state:
 import struct
 import os
 
+# repo root = parent of this python/ folder, so data paths work from any CWD
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
 
 # ------------------------------------------------------------------ #
 # Helpers for packing individual field types                          #
@@ -91,8 +94,8 @@ def delete_order(order_ref: int,
 # ------------------------------------------------------------------ #
 
 if __name__ == '__main__':
-    os.makedirs('data', exist_ok=True)
-    path = 'data/test.itch'
+    os.makedirs(os.path.join(ROOT, 'data'), exist_ok=True)
+    path = os.path.join(ROOT, 'data', 'test.itch')
 
     # ITCH price encoding: real price × 10,000
     # $50.01 → 500100    $50.02 → 500200

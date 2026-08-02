@@ -242,13 +242,16 @@ class ITCHParser:
 if __name__ == '__main__':
     import subprocess, sys, os
 
+    HERE = os.path.dirname(os.path.abspath(__file__))
+    ROOT = os.path.dirname(HERE)   # repo root, so data paths work from any CWD
+
     # ---- Test 1: synthetic file (known-answer, always runs) ----
-    subprocess.run([sys.executable, 'generate_test_itch.py'], check=True)
+    subprocess.run([sys.executable, os.path.join(HERE, 'generate_test_itch.py')], check=True)
     print()
 
     book   = OrderBook()
     parser = ITCHParser(book)
-    parser.parse_file('data/test.itch')
+    parser.parse_file(os.path.join(ROOT, 'data', 'test.itch'))
     parser.summary()
 
     print("\n--- final book state ---")
@@ -265,7 +268,7 @@ if __name__ == '__main__':
     print("synthetic test passed ✓")
 
     # ---- Test 2: real NASDAQ file (runs only if downloaded) ----
-    real_file = 'data/12302019.NASDAQ_ITCH50.gz'
+    real_file = os.path.join(ROOT, 'data', '12302019.NASDAQ_ITCH50.gz')
     if not os.path.exists(real_file):
         print(f"\nreal file not found at {real_file} — skipping real-data test")
         sys.exit(0)

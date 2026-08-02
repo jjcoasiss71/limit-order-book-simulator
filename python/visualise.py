@@ -20,6 +20,9 @@ from order_book import OrderBook
 from itch_parser import ITCHParser
 from simulation import run as run_simulation
 
+# repo root = parent of this python/ folder, so the default data path works from any CWD
+ROOT = Path(__file__).resolve().parent.parent
+
 
 Snapshot = namedtuple('Snapshot', ['msg_count', 'mid', 'microprice', 'imbalance'])
 
@@ -248,7 +251,7 @@ def plot_interactive(depth, xs, mids, micro_xs, micros,
 def main():
     ap = argparse.ArgumentParser(description='LOB Simulator — Phase 5 Visualisation')
     ap.add_argument('--stock',        default='AAPL')
-    ap.add_argument('--file',         default='data/12302019.NASDAQ_ITCH50.gz')
+    ap.add_argument('--file',         default=str(ROOT / 'data' / '12302019.NASDAQ_ITCH50.gz'))
     ap.add_argument('--sample-every', type=int, default=10_000, dest='sample_every')
     ap.add_argument('--max-messages', type=int, default=5_000_000, dest='max_messages')
     ap.add_argument('--output',       default='lob_dashboard.html')
